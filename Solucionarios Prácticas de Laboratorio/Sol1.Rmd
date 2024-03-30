@@ -1,0 +1,161 @@
+---
+title: "Solucionario Nº 1"
+subtitle: "Curso: POL304 - Estadística para el análisis político 2"
+author: "Jefes de práctica: Wendy Adrianzén, Airam Bello y Chiara Zamora"
+date: "Ciclo 2024-1"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+    theme: cosmo
+    highlight: tango
+---
+# **Indicaciones**
+
+La base de datos contiene los valores correspondientes a cinco índices elaborados por el Instituto V-Dem para un total de 179 países en el año 2023: 
+
+- Electoral democracy index (v2x_polyarchy)
+- Liberal component index (v2x_liberal) 
+- Participatory component index (v2x_partip) 
+- Deliberative component index (v2xdl_delib)
+- Egalitarian component index (v2x_egal)
+
+Se proponen las siguientes hipótesis:
+
+- H1: El componente participativo (v2x_partip) y el deliberativo (v2xdl_delib) explican el índice de democracia electoral (v2x_polyarchy).
+- H2: El componente participativo (v2x_partip), el deliberativo (v2xdl_delib) y el igualitario (v2x_egal) explican el índice de democracia electoral (v2x_polyarchy).
+- H3: El componente participativo (v2x_partip), el deliberativo (v2xdl_delib), el igualitario (v2x_egal) y el liberal (v2x_liberal) explican el índice de democracia electoral (v2x_polyarchy).
+- H4: El componente participativo (v2x_partip), el igualitario (v2x_egal) y el liberal (v2x_liberal) explican el índice de democracia electoral (v2x_polyarchy).
+
+# **Desarrollo**
+
+```{r}
+#Importamos la base de datos
+linkADrive='https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ8GeWPSGhq0SaoWyGRfxEN5fm1hLsYDPFpyGgjlID479tGPwwdMZkfq_j6f4SeH7MYwcGPrIqeQy8/pub?gid=1383566652&single=true&output=csv'
+vdem = read.csv(linkADrive)
+```
+
+```{r}
+#Limpiamos la base de datos
+str(vdem)
+vdem=vdem[,c(2:6)]
+```
+
+Una vez que tengamos nuestra base limpia, procedemos a comprobar nuestras hipótesis.
+
+### **Modelo 1**
+
+H1: El componente participativo (v2x_partip) y el deliberativo (v2xdl_delib) explican el índice de democracia electoral (v2x_polyarchy).
+
+```{r}
+modelo1=formula(v2x_polyarchy ~ v2x_partip + v2xdl_delib)
+regre1=lm(modelo1,data = vdem)
+summary(regre1)
+```
+
+### **Modelo 2**
+
+H2: El componente participativo (v2x_partip), el deliberativo (v2xdl_delib) y el igualitario (v2x_egal) explican el índice de democracia electoral (v2x_polyarchy).
+
+```{r}
+modelo2=formula(v2x_polyarchy ~ v2x_partip + v2xdl_delib + v2x_egal)
+regre2=lm(modelo2,data = vdem)
+summary(regre2)
+```
+### **Modelo 3**
+
+H3: El componente participativo (v2x_partip), el deliberativo (v2xdl_delib), el igualitario (v2x_egal) y el liberal (v2x_liberal) explican el índice de democracia electoral (v2x_polyarchy).
+
+```{r}
+modelo3=formula(v2x_polyarchy ~ v2x_partip + v2xdl_delib + v2x_egal + v2x_liberal)
+regre3=lm(modelo3,data = vdem)
+summary(regre3)
+```
+### **Modelo 4**
+
+H4: El componente participativo (v2x_partip), el igualitario (v2x_egal) y el liberal (v2x_liberal) explican el índice de democracia electoral (v2x_polyarchy).
+
+```{r}
+modelo4=formula(v2x_polyarchy ~ v2x_partip + v2x_egal + v2x_liberal)
+regre4=lm(modelo4,data = vdem)
+summary(regre4)
+```
+# **Respuestas**
+
+### **Pregunta 1**
+
+Aplica un regresión para comprobar la H2 y responde: 
+
+De acuerdo con el resultado del modelo, el componente participativo (v2x_partip) ...
+
+En el modelo 2, la variable *v2x_partip* es significiativa porque su p value es *3.09e-12*, por ende, es menor a 0,05. Por otro lado, tiene un estimate de *0.56214*. Entonces, podemos concluir que la respuesta correcta es: 
+
+**A un nivel de significancia de 0.05, tiene efecto positivo y su magnitud es 0.562**
+
+
+### **Pregunta 2**
+
+Aplica un test de ANOVA y selecciona el mejor modelo:
+
+```{r}
+library(lm.beta)
+library(modelsummary)
+models=list('Modelo 1 (H1)'=regre1,
+            'Modelo 2 (H2)'=regre2,
+            'Modelo 3 (H3)'=regre3,
+            'Modelo 4 (H4)'=regre4)
+modelsummary(models, title = "Resultados de todos los modelos",statistic = "conf.int",
+             stars = TRUE,
+             output = "kableExtra")
+```
+
+```{r}
+library(magrittr)
+library(knitr)
+tanova=anova(regre1,regre2,regre3,regre4)
+
+kable(tanova,
+      caption = "Tabla ANOVA para comparar modelos")%>%kableExtra::kable_styling(full_width = FALSE)
+```
+La comparación de modelos usando la tabla de análisis de varianza (anova) propone como hipótesis nula que los modelos no difieren (no se ha reducido el error al pasar de un modelo a otro). Cuando la comparación es significativa, rechazamos igualdad de modelos.
+
+En este caso podemos observar que hay diferencia entre el modelo 1, 2 y 3, pero no hay diferencia entre el modelo 3 y 4. Por ende, podemos decir que la respuesta correcta es: 
+
+**Más de un modelo es el mejor**
+
+
+### **Pregunta 3**
+
+Realiza el diagnóstico del cuarto modelo y responde lo siguiente:
+
+```{r}
+plot(regre4, 5)
+```
+
+```{r}
+library(kableExtra)
+checkRegre4=as.data.frame(influence.measures(regre4)$is.inf)
+checkRegre4[checkRegre4$cook.d & checkRegre4$hat,c('cook.d','hat')]%>%kable(caption = "Valores Influyentes criticos")%>%kable_styling(full_width = F)
+```
+
+Como podemos observar no aparece ninguna fila en el resultado, por ende la respuesta correcta es:
+**Ninguna de las anteriores**.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
