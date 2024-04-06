@@ -1,0 +1,130 @@
+---
+title: "Solucionario Nº 2"
+subtitle: "Curso: POL304 - Estadística para el análisis político 2"
+author: "Jefes de práctica: Wendy Adrianzén, Airam Bello y Chiara Zamora"
+date: "Ciclo 2024-1"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+    theme: cosmo
+    highlight: tango
+---
+
+```{r}
+library(readr)
+PL2 <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5wAwQRpZiUBk_AOr4k3wrPTNkiF-kpX3_VceL12hdqqS6nhbtnCWxzVcxOYvdzKFYgZaZ6CgPY7vv/pub?gid=1951660366&single=true&output=csv")
+```
+
+# **Pregunta 1**
+
+Aplica una regresión lineal para comprobar las H1 y H2. Responde lo siguiente: 
+
+```{r}
+library(knitr)
+library(modelsummary)
+
+h1=formula(H_AltaDepEcon_T~V_Hacin_T)
+rl1=lm(h1, data = PL2)
+
+h1control=formula(H_AltaDepEcon_T~V_Hacin_T + Hogares_T)
+rl2=lm(h1control, data = PL2)
+
+modelslm=list('OLS dependientes (I)'=rl1,'OLS dependientes (II)'=rl2)
+modelsummary(modelslm, title = "Regresiones Lineales",
+             stars = TRUE,
+             output = "kableExtra")
+```
+
+*Respuesta* 
+
+Son verdaderas:
+
+- tiene un nivel de significancia menor a 0.001
+
+- La regresión con variable de control tiene un mejor R2
+
+# **Pregunta 2**
+
+La variable dependiente es un conteo. De acuerdo a lo revisado durante la sesión, corresponde implementar una regresión Poisson. Hazlo con la H3 y no olvides declarar el offset.
+
+```{r}
+h2 = formula(H_AltaDepEcon_T~ V_Hacin_T + V_ServHig_T)
+rp1 = glm(h2, data = PL2, 
+        offset = log(Hogares_T),
+        family = poisson(link = "log"))
+
+
+modelsPois = list('POISSON dependientes (III)' = rp1)
+modelsummary(modelsPois, 
+             title = "Regresiones Poisson anidadas",
+             stars = TRUE,
+             output = "kableExtra")
+```
+
+```{r}
+f <- function(x) format(x, digits = 4, scientific = FALSE)
+modelsummary(modelsPois,
+             fmt = f,
+             exponentiate = T, 
+             statistic = 'conf.int',
+             title = "EXP() de la Regresión Poisson para Interpretación",
+             stars = TRUE,
+             output = "kableExtra")
+```
+
+*Respuesta* 
+
+Es verdadera:
+
+
+- A mayor % de hogares sin servicios higiénicos, mayor cantidad de altamente dependientes
+
+
+# **Pregunta 3**
+
+Responde sobre la regresión poisson de la H3.
+
+```{r}
+library(magrittr)
+library(AER)
+overdispersion=AER::dispersiontest(rp1,alternative='greater')$ p.value<0.05
+underdispersion=AER::dispersiontest(rp1,alternative='less')$ p.value<0.05
+# tabla
+testResult=as.data.frame(rbind(overdispersion,underdispersion))
+names(testResult)='Es probable?'
+testResult%>%kable(caption = "Test de Equidispersión")%>%kableExtra::kable_styling()
+```
+
+```{r}
+library(MASS)
+rqp = glm(h2, data = PL2,
+          offset=log(Hogares_T),
+          family = quasipoisson(link = "log"))
+
+h2off=formula(H_AltaDepEcon_T~ V_Hacin_T + V_ServHig_T + offset(log(Hogares_T)))
+rbn=glm.nb(h2off,data=PL2)
+
+modelsQP_BN=list('Poisson dependientes (III)'=rp1,
+                 'QuasiPoisson dependientes (III)'=rqp,
+                 'Binomial Negativa dependientes (III)'=rbn)
+
+f <- function(x) format(x, digits = 4, scientific = FALSE)
+modelsummary(modelsQP_BN,fmt=f,
+             exponentiate = T, 
+             statistic = 'conf.int',
+             title = "EXP() de la Regresiones Poisson, Quasi Poisson  y Binomial Negativa",
+             stars = TRUE,
+             output = "kableExtra")
+```
+
+```{r}
+anova(rp1,rqp,rbn, test = "Chisq") %>%
+kable(caption = "Tabla ANOVA para comparar modelos")%>%kableExtra::kable_styling(full_width = FALSE)
+```
+
+*Respuesta* 
+
+Es sobredispersa y se ejecuta regresiones quasipoisson y binomial negativa. El mejor modelo es el binomial negativo.
+
