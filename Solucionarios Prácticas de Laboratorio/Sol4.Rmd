@@ -1,0 +1,98 @@
+---
+title: "Solucionario de la PL4"
+output: html_document
+---
+
+```{r}
+data2 = read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vT66z54ezbhTPQceriWSW_MWZSvtxJq4v3t1DlmN5B7DbeQBBGhMZJuGYR0g6fq4dwSPstlmstU4vh7/pub?gid=690308600&single=true&output=csv")
+```
+
+* **Pregunta 1**
+
+Explora los datos y responde lo siguiente:
+
+*El tiempo en días promedio es... y el número de eventos registrados en la base es...*
+
+```{r}
+summary(data2$enministerio)
+```
+
+```{r}
+table(data2$evento)
+```
+
+Respuesta: **794; 126**
+
+* **Pregunta 2**
+
+Aplica un regresión para comprobar la H1 y responde lo siguiente: 
+
+*Respecto a la variable "president", el modelo demuestra que...*
+
+```{r}
+data2$survival=with(data2,
+                     Surv(time = enministerio,event =  as.numeric(evento)))
+```
+
+
+```{r}
+COX_H1 = formula(survival ~ sex + age + president)
+
+#regression
+rcox1 <- coxph(COX_H1, data = data2)
+
+modelcox=list('Riesgo - Salida ministerial'= rcox1,'Riesgo - Salida min. (exponenciado)'= rcox1)
+
+#f <- function(x) format(x, digits = 4, scientific = FALSE)
+library(modelsummary)
+modelsummary(modelcox,
+             #fmt=f,
+             exponentiate = c(F,T), 
+             statistic = 'conf.int',
+             title = "Regresión cox",
+             stars = TRUE,
+             output = "kableExtra")
+```
+
+```{r}
+(presidentPatricio=abs(1-exp(coef(rcox1)[4])))
+```
+
+Respuesta: **Ser ministro del gobierno de Patricio Aylwin reduce las probabilidades de salida ministerial en 75%**
+
+* **Pregunta 3**
+
+Aplica un regresión para comprobar la H2 y la H3 y responde lo siguiente: 
+
+*¿Cuál es el mejor modelo?*
+
+```{r}
+COX_H2 = formula(survival ~ sex + age + president + prestige )
+COX_H3 = formula(survival ~ sex + age + president + prestige + non_party)
+
+#regression
+rcox2 <- coxph(COX_H2, data = data2)
+rcox3 <- coxph(COX_H3, data = data2)
+
+modelcox=list('Riesgo - Salida ministerial'= rcox1, 'Riesgo - Salida ministerial'= rcox2,'Riesgo - Salida ministerial'= rcox3)
+
+#f <- function(x) format(x, digits = 4, scientific = FALSE)
+library(modelsummary)
+modelsummary(modelcox,
+             #fmt=f, 
+             exponentiate = T,
+             statistic = 'conf.int',
+             title = "Regresión cox",
+             stars = TRUE,
+             output = "kableExtra")
+```
+
+```{r}
+anova(rcox1, rcox2 , rcox3)%>%
+knitr::kable(caption = "Tabla anova para comparar modelos")%>%kableExtra::kable_styling(full_width = FALSE)
+```
+
+Respuesta: **Modelo 3**
+
+
+
