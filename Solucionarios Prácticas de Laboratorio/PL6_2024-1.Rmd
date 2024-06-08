@@ -1,0 +1,152 @@
+---
+title: "Solucionario Nº 6"
+author: 'Jefes de práctica: Wendy Adrianzen, Chiara Zamora y Airam Bello'
+date: "Ciclo 2023-2"
+subtitle: "Curso: POL304 - Estadística para el análisis político 2"
+---
+
+  
+```{r}
+library(rio)
+data = read.table("https://docs.google.com/spreadsheets/d/e/2PACX-1vRSoEIFbRc_Angw6-if_lje9Ds39pDlp-x7gPz5xcoVCA1ACtcBMnuOvnpPZcCTL7jLCdQ03kIZgSkR/pub?gid=0&single=true&output=csv", sep = ",",header = TRUE)
+```
+
+```{r}
+boxplot(data[,c(4:8)],horizontal = F,las=2,cex.axis = 0.5)
+```
+
+```{r}
+cor(data[,c(4:8)])
+```
+Quédese solo con las variables necesarias para realizar un análisis de conglomerados
+```{r}
+dataClus=data[,c(4:8)]
+row.names(dataClus)=data$Country
+```
+
+### Preguntas:
+
+#### Pregunta 1
+Realice las tres estrategias de clusterización, realizado en clase y calcule las silhouettes.
+
+```{r}
+library(cluster)
+g.dist = daisy(dataClus, metric="gower")
+```
+
+```{r}
+library(factoextra)
+fviz_nbclust(dataClus, pam,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+```
+```{r}
+library(kableExtra)
+set.seed(123)
+res.pam=pam(g.dist,7,cluster.only = F)
+
+#nueva columna
+dataClus$pam=res.pam$cluster
+
+# ver
+
+head(dataClus,15)%>%kbl()%>%kable_styling()
+```
+
+```{r}
+silPAM=data.frame(res.pam$silinfo$widths)
+silPAM$country=row.names(silPAM)
+poorPAM=silPAM[silPAM$sil_width<0,'country']%>%sort()
+poorPAM
+```
+```{r}
+fviz_silhouette(res.pam,print.summary = F)
+```
+
+```{r}
+fviz_nbclust(dataClus, hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F,hc_func = "agnes")
+```
+
+```{r}
+set.seed(123)
+library(factoextra)
+
+res.agnes<- hcut(g.dist, k = 7,hc_func='agnes',hc_method = "ward.D")
+
+dataClus$agnes=res.agnes$cluster
+
+# ver
+
+head(dataClus,15)%>%kbl()%>%kable_styling()
+```
+
+```{r}
+silAGNES=data.frame(res.agnes$silinfo$widths)
+silAGNES$country=row.names(silAGNES)
+poorAGNES=silAGNES[silAGNES$sil_width<0,'country']%>%sort()
+poorAGNES
+```
+```{r}
+fviz_silhouette(res.agnes,print.summary = F)
+```
+
+¿Cual de ellas tienes la peor agrupación?
+Respuesta: Agnes
+
+
+#### Pregunta 2
+Algún enfoque de clusterización sugerirá 4 grupos?
+
+```{r}
+fviz_nbclust(dataClus, hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F,hc_func = "diana")
+```
+```{r}
+set.seed(123)
+res.diana <- hcut(g.dist, k = 4,hc_func='diana')
+dataClus$diana=res.diana$cluster
+# veamos
+head(dataClus,15)%>%kbl%>%kable_styling()
+```
+
+
+
+```{r}
+fviz_silhouette(res.diana,print.summary = F)
+```
+
+#### Pregunta 3
+Según el cluster elegido en la pregunta anterior. Identifica los paises mal clusterizados
+
+```{r}
+silDIANA=data.frame(res.diana$silinfo$widths)
+silDIANA$country=row.names(silDIANA)
+poorDIANA=silDIANA[silDIANA$sil_width<0,'country']%>%sort()
+poorDIANA
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
